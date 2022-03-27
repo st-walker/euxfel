@@ -1,3 +1,5 @@
+import importlib.resources
+
 import numpy as np
 from ocelot.cpbd.csr import CSR
 from ocelot.cpbd.magnetic_lattice import MagneticLattice
@@ -42,6 +44,8 @@ SCmesh = [63, 63, 63]
 bISR = True
 bRandomMesh = True
 
+WAKEDIR = importlib.resources.files("s2luxe.accelerator") / "wakes"
+
 
 class A1(SectionTrack):
     def __init__(self, data_dir):
@@ -66,7 +70,7 @@ class A1(SectionTrack):
         sc2.nmesh_xyz = SCmesh
         sc2.random_mesh = bRandomMesh
         wake = Wake()
-        wake.wake_table = WakeTable('accelerator/wakes/RF/mod_TESLA_MODULE_WAKE_TAYLOR.dat')
+        wake.wake_table = WakeTable(WAKEDIR / 'RF/mod_TESLA_MODULE_WAKE_TAYLOR.dat')
         wake.factor = 1
         wake.step = 50
         wake.w_sampling = WakeSampling
@@ -101,13 +105,13 @@ class AH1(SectionTrack):
         sc.nmesh_xyz = SCmesh
         sc.random_mesh = bRandomMesh
         wake = Wake()
-        wake.wake_table = WakeTable('accelerator/wakes/RF/mod_THIRD_HARMONIC_SECTION_WAKE_TAYLOR.dat')
+        wake.wake_table = WakeTable(WAKEDIR / 'RF/mod_THIRD_HARMONIC_SECTION_WAKE_TAYLOR.dat')
         wake.factor = 2
         wake.step = 50
         wake.w_sampling = WakeSampling
         wake.filter_order = WakeFilterOrder
         wake_add = Wake()
-        wake_add.wake_table = WakeTable('accelerator/wakes/mod_wake_0002.700_0024.770_MONO.dat')
+        wake_add.wake_table = WakeTable(WAKEDIR / 'mod_wake_0002.700_0024.770_MONO.dat')
         wake_add.factor = 1
         wake_add.w_sampling = WakeSampling
         wake_add.filter_order = WakeFilterOrder
@@ -143,7 +147,7 @@ class LH(SectionTrack):
         sc.nmesh_xyz = SCmesh
         sc.random_mesh = bRandomMesh
         wake_add = Wake()
-        wake_add.wake_table = WakeTable('accelerator/wakes/mod_wake_0027.390_0050.080_MONO.dat')
+        wake_add.wake_table = WakeTable(WAKEDIR / 'mod_wake_0027.390_0050.080_MONO.dat')
         wake_add.factor = 1
         wake_add.w_sampling = WakeSampling
         wake_add.filter_order = WakeFilterOrder
@@ -183,7 +187,7 @@ class DL(SectionTrack):
         csr.traj_step = 0.0005
         csr.apply_step = 0.005
         wake_add = Wake()
-        wake_add.wake_table = WakeTable('accelerator/wakes/mod_wake_0070.030_0073.450_MONO.dat')
+        wake_add.wake_table = WakeTable(WAKEDIR / 'mod_wake_0070.030_0073.450_MONO.dat')
         wake_add.factor = 1
         wake_add.w_sampling = WakeSampling
         wake_add.filter_order = WakeFilterOrder
@@ -258,13 +262,13 @@ class L1(SectionTrack):
         sc.nmesh_xyz = SCmesh
         sc.random_mesh = bRandomMesh
         wake = Wake()
-        wake.wake_table = WakeTable('accelerator/wakes/RF/mod_TESLA_MODULE_WAKE_TAYLOR.dat')
+        wake.wake_table = WakeTable(WAKEDIR / 'RF/mod_TESLA_MODULE_WAKE_TAYLOR.dat')
         wake.factor = 4
         wake.step = 100
         wake.w_sampling = WakeSampling
         wake.filter_order = WakeFilterOrder
         wake_add = Wake()
-        wake_add.wake_table = WakeTable('accelerator/wakes/mod_wake_0078.970_0159.280_MONO.dat')
+        wake_add.wake_table = WakeTable(WAKEDIR / 'mod_wake_0078.970_0159.280_MONO.dat')
         wake_add.factor = 1
         wake_add.w_sampling = WakeSampling
         wake_add.filter_order = WakeFilterOrder
@@ -339,11 +343,11 @@ class L2(SectionTrack):
         sc.nmesh_xyz = SCmesh
         sc.random_mesh = bRandomMesh
         wake = Wake()
-        wake.wake_table = WakeTable('accelerator/wakes/RF/mod_TESLA_MODULE_WAKE_TAYLOR.dat')
+        wake.wake_table = WakeTable(WAKEDIR / 'RF/mod_TESLA_MODULE_WAKE_TAYLOR.dat')
         wake.factor = 4 * 3
         wake.step = 200
         wake_add = Wake()
-        wake_add.wake_table = WakeTable('accelerator/wakes/mod_wake_0179.810_0370.840_MONO.dat')
+        wake_add.wake_table = WakeTable(WAKEDIR / 'mod_wake_0179.810_0370.840_MONO.dat')
         wake_add.factor = 1
         self.add_physics_process(smooth, start=bc1_stop, stop=bc1_stop)
         self.add_physics_process(sc, start=bc1_stop, stop=acc3t5_stop)
@@ -423,12 +427,12 @@ class L3(SectionTrack):
         sc.random_mesh = bRandomMesh
 
         wake = Wake()
-        wake.wake_table = WakeTable('accelerator/wakes/RF/mod_TESLA_MODULE_WAKE_TAYLOR.dat')
+        wake.wake_table = WakeTable(WAKEDIR / 'RF/mod_TESLA_MODULE_WAKE_TAYLOR.dat')
         wake.factor = 4 * 21
         wake.step = 10
         wake.w_sampling = 1000
         wake_add = Wake()
-        wake_add.wake_table = WakeTable('accelerator/wakes/mod_wake_0391.350_1629.700_MONO.dat')
+        wake_add.wake_table = WakeTable(WAKEDIR / 'mod_wake_0391.350_1629.700_MONO.dat')
         wake_add.factor = 1
 
         app = PhaseSpaceAperture()
@@ -591,7 +595,7 @@ class CL3(SectionTrack):
         csr.sigma_min = Sig_Z[3] * CSRSigmaFactor
 
         wake_add = Wake()
-        wake_add.wake_table = WakeTable('accelerator/wakes/mod_wake_1629.700_1831.200_MONO.dat')
+        wake_add.wake_table = WakeTable(WAKEDIR / 'mod_wake_1629.700_1831.200_MONO.dat')
         wake_add.factor = 1
 
         self.add_physics_process(csr, start=collimator2_stop, stop=collimator3_stop)
@@ -679,10 +683,10 @@ class STN10(SectionTrack):
         sc.nmesh_xyz = SCmesh
         sc.random_mesh = bRandomMesh
         wake_add = Wake()
-        wake_add.wake_table = WakeTable('accelerator/wakes/mod_wake_1831.200_2035.190_MONO.dat')
+        wake_add.wake_table = WakeTable(WAKEDIR / 'mod_wake_1831.200_2035.190_MONO.dat')
         wake_add.factor = 1
         wake_add1 = Wake()
-        wake_add1.wake_table = WakeTable('accelerator/wakes/mod_wake_2035.190_2213.000_MONO.dat')
+        wake_add1.wake_table = WakeTable(WAKEDIR / 'mod_wake_2035.190_2213.000_MONO.dat')
         wake_add1.factor = 1
 
         self.add_physics_process(sc, start=collimator3_stop, stop=stN10_stop)
@@ -708,7 +712,7 @@ class SASE1(SectionTrack):
 
         # init physics processes
         wake = Wake()
-        wake.wake_table = WakeTable('accelerator/wakes/Undulator/wake_undulator_OCELOT.txt')
+        wake.wake_table = WakeTable(WAKEDIR / 'Undulator/wake_undulator_OCELOT.txt')
         wake.step = 10
         wake.w_sampling = WakeSampling
         wake.factor = 35 * 6.1
@@ -770,7 +774,7 @@ class T4(SectionTrack):
 
         # creation of wake object with parameters
         wake = Wake()
-        wake.wake_table = WakeTable('accelerator/wakes/Dechirper/wake_hor_axis_500um.txt')
+        wake.wake_table = WakeTable(WAKEDIR / 'Dechirper/wake_hor_axis_500um.txt')
         wake.w_sampling = 500
         wake.factor = 1
         wake.step = 1  # step in Navigator.unit_step, dz = Navigator.unit_step * wake.step [m]
@@ -778,8 +782,8 @@ class T4(SectionTrack):
         # creation of wake object with parameters
         wake_vert = Wake()
         wake_vert.factor = 1
-        # wake_vert.wake_table = WakeTable('accelerator/wakes/wake_vert_1m_500mkm.txt')
-        wake_vert.wake_table = WakeTable('accelerator/wakes/Dechirper/wake_vert_axis_500um.txt')
+        # wake_vert.wake_table = WakeTable(WAKEDIR / 'wake_vert_1m_500mkm.txt')
+        wake_vert.wake_table = WakeTable(WAKEDIR / 'Dechirper/wake_vert_axis_500um.txt')
         wake_vert.w_sampling = 500
         wake_vert.step = 1  # step in Navigator.unit_step, dz = Navigator.unit_step * wake.step [m]
 
@@ -900,7 +904,7 @@ class T4_short(SectionTrack):
 
         # creation of wake object with parameters
         wake = Wake()
-        wake.wake_table = WakeTable('accelerator/wakes/tt.txt')
+        wake.wake_table = WakeTable(WAKEDIR / 'tt.txt')
 
         # w_sampling - defines the number of the equidistant sampling points for the one-dimensional
         # wake coefficients in the Taylor expansion of the 3D wake function.
@@ -911,7 +915,7 @@ class T4_short(SectionTrack):
         # creation of wake object with parameters
         wake_vert = Wake()
         wake_vert.factor = 1
-        wake_vert.wake_table = WakeTable('accelerator/wakes/tt.txt')
+        wake_vert.wake_table = WakeTable(WAKEDIR / 'tt.txt')
         wake_vert.w_sampling = 500
         wake_vert.step = 1  # step in Navigator.unit_step, dz = Navigator.unit_step * wake.step [m]
 
@@ -990,10 +994,10 @@ class T1(SectionTrack):
         csr3.sigma_min = Sig_Z[3] * CSRSigmaFactor
 
         wake_add = Wake()
-        wake_add.wake_table = WakeTable('accelerator/wakes/mod_wake_1831.200_2035.190_MONO.dat')
+        wake_add.wake_table = WakeTable(WAKEDIR / 'mod_wake_1831.200_2035.190_MONO.dat')
         wake_add.factor = 1
         wake_add1 = Wake()
-        wake_add1.wake_table = WakeTable('accelerator/wakes/mod_wake_2035.190_2213.000_MONO.dat')
+        wake_add1.wake_table = WakeTable(WAKEDIR / 'mod_wake_2035.190_2213.000_MONO.dat')
         wake_add1.factor = 1
 
         self.add_physics_process(wake_add, start=collimator3_stop, stop=collimator3_stop)
@@ -1148,7 +1152,7 @@ class SASE2(SectionTrack):
         self.lattice = MagneticLattice(sase2.cell, start=sase2_start, stop=sase2_stop, method=self.method)
         # init physics processes
         wake = Wake()
-        wake.wake_table = WakeTable('accelerator/wakes/Undulator/wake_undulator_OCELOT.txt')
+        wake.wake_table = WakeTable(WAKEDIR / 'Undulator/wake_undulator_OCELOT.txt')
         wake.step = 10
         wake.w_sampling = 1000
         wake.factor = 35 * 6.1

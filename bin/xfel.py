@@ -25,7 +25,7 @@ from euxfel.sections import A1, AH1, BC0, BC1, BC2, CL1, CL2, CL3, DL, L1, L2, L
 matplotlib.use('TkAgg')
 
 print(os.getcwd())
-data_dir = "../../.."
+data_dir = "./"
 
 all_sections = [A1, AH1, LH, DL, BC0, L1, BC1, L2, BC2, L3, CL1, CL2, CL3, STN10, SASE1, T4]  # , SASE3, T4D]
 sections = [A1, AH1, LH, DL, BC0, L1, BC1, L2, BC2, L3, CL1, CL2, CL3, STN10, SASE1, T4]
