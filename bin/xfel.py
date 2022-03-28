@@ -10,7 +10,6 @@ from copy import deepcopy
 from math import pi
 from typing import List
 
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from ocelot.common.globals import m_e_GeV
@@ -20,15 +19,39 @@ from ocelot.cpbd.magnetic_lattice import MagneticLattice
 from ocelot.gui.accelerator import plot_opt_func_reduced, show_e_beam
 from ocelot.utils.section_track import SectionLattice
 
-from euxfel.sections import A1, AH1, BC0, BC1, BC2, CL1, CL2, CL3, DL, L1, L2, L3, LH, SASE1, SASE2, STN10, T1, T3, T4
+from euxfel.sections import (
+    A1,
+    AH1,
+    BC0,
+    BC1,
+    BC2,
+    CL1,
+    CL2,
+    CL3,
+    CL3LUXE,
+    DL,
+    L1,
+    L2,
+    L3,
+    LH,
+    SASE1,
+    SASE2,
+    STN10,
+    T1,
+    T3,
+    T4,
+    T20LUXE,
+)
 
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 
 print(os.getcwd())
 data_dir = "./"
 
-all_sections = [A1, AH1, LH, DL, BC0, L1, BC1, L2, BC2, L3, CL1, CL2, CL3, STN10, SASE1, T4]  # , SASE3, T4D]
-sections = [A1, AH1, LH, DL, BC0, L1, BC1, L2, BC2, L3, CL1, CL2, CL3, STN10, SASE1, T4]
+all_sections = [A1, AH1, LH, DL, BC0, L1, BC1, L2, BC2, L3, CL1, CL2, CL3LUXE, T20LUXE]
+# all_sections = [A1, AH1, LH, DL, BC0, L1, BC1, L2, BC2, L3, CL1, CL2, CL3, STN10, SASE1, T4, SASE3, T4D]
+all_sections = [A1, AH1, LH, DL, BC0, L1, BC1, L2, BC2, L3, CL1, CL2, CL3LUXE, T20LUXE]
+sections = [A1, AH1, LH, DL, BC0, L1, BC1, L2, BC2, L3, CL1, CL2, CL3LUXE, T20LUXE]
 in_file = "gun.npz"
 
 LoadRF = "RF_250_5_2M.txt"  # RF parameters

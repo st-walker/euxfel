@@ -1,9 +1,20 @@
 import importlib.resources
+from pathlib import Path
 
 import numpy as np
+import pand8
+from ocelot.adaptors import mad8
 from ocelot.cpbd.csr import CSR
+from ocelot.cpbd.elements import Hcor, Marker, RBend, SBend, Vcor
 from ocelot.cpbd.magnetic_lattice import MagneticLattice
-from ocelot.cpbd.physics_proc import LaserModulator, PhaseSpaceAperture, SaveBeam, SmoothBeam, SpontanRadEffects
+from ocelot.cpbd.physics_proc import (
+    CopyBeam,
+    LaserModulator,
+    PhaseSpaceAperture,
+    SaveBeam,
+    SmoothBeam,
+    SpontanRadEffects,
+)
 from ocelot.cpbd.sc import SpaceCharge
 from ocelot.cpbd.wake3D import Wake, WakeTable
 from ocelot.utils.section_track import SectionTrack
@@ -24,16 +35,28 @@ import euxfel.phase_advance_5pi_sase2.t4d as t4d
 import euxfel.phase_advance_5pi_sase2.tl34 as tl34
 import euxfel.phase_advance_5pi_sase2.tl34_sase1 as tl34_sase1
 
-# Sig_Z=(0.0019996320155001497, 0.0006893836215002082, 0.0001020391309281775, 1.25044082708419e-05) #500pC 5kA
-# Sig_Z=(0.0019996320155001497, 0.0006817907866411071, 9.947650872824487e-05, 7.13045869665955e-06)  #500pC 10kA
-Sig_Z = (0.0018761888067590127, 0.0006359220169656093, 9.204477386791353e-05, 7.032551498646372e-06)  # 250pC 5kA
-# Sig_Z=(0.0018856911379360524, 0.0005468126627335007, 6.938101082846712e-05, 3.3519836103821155e-06)
-# Sig_Z=(0.0018856911379360524, 0.0005463919476045524, 6.826162032352288e-05, 1.0806534547678727e-05) #100pC 1kA
-# Sig_Z=(0.0018732263778031917, 0.000543728401151138, 6.950960791500939e-05, 6.640695765712526e-06)
-# Sig_Z=(0.0013314283765668853, 0.0004502566926198658, 4.64037216210807e-05, 2.346018397815618e-06) #100 pC 5kA SC
+# I think these are rms bunch lengths [before bc0, after bc0, after bc1, after bc2]?
 
-# Sig_Z=(0.0013314187263949542, 0.00045069372029991764, 4.537451914820527e-05, 4.0554988027793585e-06)#100 pC 2.5kA SC
-# Sig_Z=(0.0010092236152336234, 0.00032242495385379345, 2.211499470770707e-05, 5.983276760438593e-06)
+# Sig_Z=(0.0019996320155001497, 0.0006893836215002082, 0.0001020391309281775,
+#        1.25044082708419e-05) # 500pC 5kA
+# Sig_Z=(0.0019996320155001497, 0.0006817907866411071, 9.947650872824487e-05,
+#        7.13045869665955e-06)  #500pC 10kA
+Sig_Z = (0.0018761888067590127, 0.0006359220169656093, 9.204477386791353e-05, 7.032551498646372e-06)  # 250pC 5kA = used
+# Sig_Z=(0.0018856911379360524, 0.0005468126627335007, 6.938101082846712e-05,
+#        3.3519836103821155e-06)
+# Sig_Z=(0.0018856911379360524, 0.0005463919476045524, 6.826162032352288e-05,
+#        1.0806534547678727e-05) #100pC 1kA
+# Sig_Z=(0.0018732263778031917, 0.000543728401151138, 6.950960791500939e-05,
+#        6.640695765712526e-06)
+# Sig_Z=(0.0013314283765668853, 0.0004502566926198658, 4.64037216210807e-05,
+#        2.346018397815618e-06) #100 pC 5kA SC
+
+# Sig_Z=(0.0013314187263949542, 0.00045069372029991764, 4.537451914820527e-05,
+#        4.0554988027793585e-06)#100 pC 2.5kA SC
+# Sig_Z=(0.0010092236152336234, 0.00032242495385379345, 2.211499470770707e-05,
+#        5.983276760438593e-06)
+T20LUXE_SIGZ = Sig_Z[3]
+
 SmoothPar = 1000
 LHE = 11000e-9 * 0.74 / 0.8  # GeV
 WakeSampling = 500
@@ -45,6 +68,20 @@ bISR = True
 bRandomMesh = True
 
 WAKEDIR = importlib.resources.files("s2luxe.accelerator") / "wakes"
+
+THIS_FILE = Path(__file__).resolve()
+THIS_DIR = THIS_FILE.parent
+
+
+# NINA_TWISS = pand8.read(str(THIS_DIR / "../../luxe/TWISS_CL_T20.txt"))
+NINA_TWISS = pand8.read("/Users/stuartwalker/physics/s2e-xfel/xfel_s2e_ref/accelerator/lattice/luxe/TWISS_CL_T20.txt")
+START_T20_MARKER_NAME = "STSEC.TL.TL"
+IP_T20_MARKER_NAME = "IP.LUXE.T20"
+START_T20_INDEX = NINA_TWISS[(NINA_TWISS["NAME"] == START_T20_MARKER_NAME)].index.item()
+IP_T20_INDEX = NINA_TWISS[(NINA_TWISS["NAME"] == IP_T20_MARKER_NAME)].index.item()
+
+STOP_T20_INDEX = None
+STOP_T20_MARKER_NAME = NINA_TWISS.iloc[-1].NAME
 
 
 class A1(SectionTrack):
@@ -1217,3 +1254,165 @@ class T5(SectionTrack):
         self.tws_file = self.tws_dir + "tws_section_T5.npz"
 
         self.lattice = MagneticLattice(t5.cell, start=t5.stsec_2743_t5, stop=t5.stsec_3039_t5d, method=self.method)
+
+
+class T20LUXE(SectionTrack):
+    def __init__(self, data_dir):
+        super().__init__(data_dir)
+
+        # setting parameters
+        self.lattice_name = 'T20LUXE'
+        self.unit_step = 0.2
+
+        self.input_beam_file = self.particle_dir + 'section_CL3LUXE.npz'
+        self.output_beam_file = self.particle_dir + 'section_T20LUXE.npz'
+        self.tws_file = self.tws_dir + "tws_section_T20LUXE.npz"
+
+        # global NINA_TWISS
+        self.twiss = NINA_TWISS
+        self.twiss = self.twiss.iloc[START_T20_INDEX:None]
+
+        sequence, twiss0 = mad8.twiss_to_sequence_with_optics(self.twiss)
+
+        self.twiss0 = twiss0
+
+        # import ipdb; ipdb.set_trace()
+        # Have to explicitly set the start and stop even though they are by
+        # definition in this case simply the first and last elements of the
+        # lattice..
+        sequence = list(sequence)
+        # start = sequence[0]
+
+        # NINA_TWISS = NINA_TWISS.iloc[START_T20_INDEX:STOP_T20_INDEX+1]
+        # from IPython import embed; embed()
+        # from IPython import embed; embed()
+        # last_x_bend = names.index("BD.3.T20_62_marker")
+        section_start = sequence[0]
+        section_stop = sequence[-1]
+
+        sequence_without_dipole_markers = sequence
+        sequence_with_dipole_markers = []
+        dipole_markers_with_bending_radii = []
+
+        # Attaching physics processes to markers...
+        # IP marker.
+        # from IPython import embed; embed()
+        for element in sequence_without_dipole_markers:
+            # if isinstance(element, (Hcor, Vcor)):
+            #     print(f"{element}: {element.angle=}, {element.l=}")
+
+            # if element.id == "CFY.TL":
+            #     import ipdb; ipdb.set_trace()
+
+            if isinstance(element, (RBend, SBend, Hcor, Vcor)):
+                angle = element.angle
+
+                if not angle:
+                    # Don't bother attaching markers here!
+                    sequence_with_dipole_markers.append(element)
+                    continue
+                length = element.l
+
+                bending_radius = abs(length / angle)
+
+                vertical = element.tilt != 0
+
+                name = element.id
+                before = Marker(f"{name}-before")
+                after = Marker(f"{name}-after")
+
+                sequence_with_dipole_markers.extend([before, element, after])
+                dipole_markers_with_bending_radii.append((before, after, bending_radius, vertical))
+
+            else:
+                sequence_with_dipole_markers.append(element)
+
+        # from IPython import embed; embed()
+        sequence = sequence_with_dipole_markers
+
+        self.lattice = MagneticLattice(sequence, start=section_start, stop=section_stop, method=self.method)
+
+        # init physics processes
+        sc = SpaceCharge()
+        sc.step = 10
+        sc.nmesh_xyz = [31, 31, 31]
+        sc.low_order_kick = False
+
+        csr = CSR()
+        csr.traj_step = 0.0005
+        csr.apply_step = 0.005
+        csr.n_bin = 300
+        csr.sigma_min = T20LUXE_SIGZ * 0.1
+        csr.rk_traj = True
+        csr.energy = 14.0
+
+        # wake_add = Wake()
+        # wake_add.wake_table = WakeTable(WAKEDIR / 'mod_wake_1629.700_1831.200_MONO.dat')
+        # wake_add.factor = 1
+
+        luxe_ip_name = "IP.LUXE.T20"
+        ip_marker = next(s for s in sequence if s.id == luxe_ip_name)
+        self.ip_dump = CopyBeam(luxe_ip_name)
+
+        self.add_physics_process(self.ip_dump, start=ip_marker, stop=ip_marker)
+
+        # Do the Derbenev stuff.  Add the physics processes for this purpose.
+        # self.db_everywhere = DerbanevScorer()
+        # magnet_dbs = []
+        # for start, end, bending_radius, vertical in dipole_markers_with_bending_radii:
+        #     this_db = DerbanevScorer(bending_radius=bending_radius, vertical=vertical)
+        #     magnet_dbs.append(this_db)
+        #     self.add_physics_process(this_db, start=start, stop=end)
+        # self.magnet_dbs = magnet_dbs
+        # self.add_physics_process(self.db_everywhere,
+        #                          start=section_start,
+        #                          stop=section_stop)
+
+        self.add_physics_process(csr, start=section_start, stop=section_stop)
+        self.add_physics_process(sc, start=section_start, stop=section_stop)
+
+
+class CL3LUXE(SectionTrack):
+    def __init__(self, data_dir):
+        super().__init__(data_dir)
+
+        # setting parameters
+        self.lattice_name = 'CL3LUXE'
+        self.unit_step = 0.2
+
+        self.input_beam_file = self.particle_dir + 'section_CL2.npz'
+        self.output_beam_file = self.particle_dir + 'section_CL3LUXE.npz'
+        self.tws_file = self.tws_dir + "tws_section_CL3LUXE.npz"
+
+        collimator2_stop = cl.bpma_1783_cl
+        cl3_luxe_end = cl.ensec_1854_cl
+        # collimator3_stop = cl.bpma_1853_cl  # Old, from CL section above.
+        # init tracking lattice
+        self.lattice = MagneticLattice(
+            cl.cell,
+            start=collimator2_stop,
+            # stop=collimator3_stop,
+            stop=cl3_luxe_end,
+            method=self.method,
+        )
+        # init physics processes
+
+        sc = SpaceCharge()
+        sc.step = 10
+        sc.nmesh_xyz = [31, 31, 31]
+        sc.low_order_kick = False
+
+        csr = CSR()
+        csr.traj_step = 0.0005
+        csr.apply_step = 0.005
+        csr.n_bin = 300
+        # csr.sigma_min = Sig_Z[3]*0.1
+        csr.sigma_min = T20LUXE_SIGZ * 0.1
+
+        wake_add = Wake()
+        wake_add.wake_table = WakeTable(WAKEDIR / 'mod_wake_1629.700_1831.200_MONO.dat')
+        wake_add.factor = 1
+
+        self.add_physics_process(csr, start=collimator2_stop, stop=cl3_luxe_end)
+        self.add_physics_process(sc, start=collimator2_stop, stop=cl3_luxe_end)
+        self.add_physics_process(wake_add, start=cl3_luxe_end, stop=cl3_luxe_end)
