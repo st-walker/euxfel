@@ -67,7 +67,7 @@ SCmesh = [63, 63, 63]
 bISR = True
 bRandomMesh = True
 
-WAKEDIR = importlib.resources.files("s2luxe.accelerator") / "wakes"
+WAKEDIR = importlib.resources.files("euxfel") / "wakes"
 
 THIS_FILE = Path(__file__).resolve()
 THIS_DIR = THIS_FILE.parent
