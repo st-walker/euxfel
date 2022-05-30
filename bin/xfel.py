@@ -7,10 +7,10 @@
 
 import os
 from copy import deepcopy
-from math import pi
 from typing import List
 
 import numpy as np
+import toml
 from ocelot.cpbd.beam import Twiss
 from ocelot.cpbd.io import load_particle_array
 from ocelot.cpbd.magnetic_lattice import MagneticLattice
@@ -44,6 +44,9 @@ from euxfel.sections import (
 
 IGOR_PLOTS = False
 
+DISABLE_ALL_PHYSICS = False
+
+
 print(os.getcwd())
 data_dir = "./"
 
@@ -54,7 +57,8 @@ sections = [A1, AH1, LH, DL, BC0, L1, BC1, L2, BC2, L3, CL1, CL2, CL3LUXE, T20LU
 in_file = "gun.npz"
 
 LoadRF = "RF_250_5_2M.txt"  # RF parameters
-E40 = 14000  # final beam enenrgy
+# E40 = 14000  # final beam enenrgy
+E40 = 16500  # final beam enenrgy#
 r1 = 4.1218  # deflecting radius in BC0
 r2 = 8.3934  # deflecting radius in BC1
 r3 = 14.4111  # deflecting radius in BC2
@@ -64,11 +68,12 @@ C30 = 400 / (C10 * C20)  # local compression in BC2
 R2 = 0  # first derivative of the inverse compression function
 R3 = 900  # second derivative of the inverse compression function
 
-match_exec = True  # artificial matching
-wake_exec = True  # wakes
-SC_exec = True  # space charge
-CSR_exec = True  # CSR
-smooth_exec = False  # artificial smoothing
+match_exec = True and not DISABLE_ALL_PHYSICS  # artificial matching
+wake_exec = True and not DISABLE_ALL_PHYSICS  # wakes
+SC_exec = True and not DISABLE_ALL_PHYSICS  # space charge
+CSR_exec = True and not DISABLE_ALL_PHYSICS  # CSR
+smooth_exec = False and not DISABLE_ALL_PHYSICS  # artificial smoothing
+
 
 # design optics
 tws0 = Twiss()
@@ -90,33 +95,44 @@ config = {
 section_lat.update_sections(sections, config=config)
 
 # RF parameters
-c = 299792458
-grad = pi / 180
-f = 1.3e9
-k = 2 * pi * f / c
-RFpars = np.loadtxt(LoadRF)
-V11 = RFpars[0, 0]
-fi11 = RFpars[0, 1] * grad
-V13 = RFpars[1, 0]
-fi13 = RFpars[1, 1] * grad
-V21 = RFpars[2, 0]
-fi21 = RFpars[2, 1] * grad
-V31 = RFpars[3, 0]
-fi31 = RFpars[3, 1] * grad
-V41 = E40 - 2400
-fi41 = 0
+
+rf = toml.load("rf.toml")["RF"]
+
+assert rf["voltage_units"] == "MV"
+assert rf["phase_units"] == "degrees"
+
+gv_per_mv = 1e-3
+v11 = rf["A1"]["v1"]
+fi11 = rf["A1"]["phi1"]
+a1_gv_per_mod = gv_per_mv * v11 / rf["A1"]["nmodules"]
+
+v13 = rf["AH1"]["v3"]
+fi13 = rf["AH1"]["phi3"]
+ah1_gv_per_mod = gv_per_mv * v13 / rf["AH1"]["nmodules"]
+
+v21 = rf["L1"]["v1"]
+fi21 = rf["L1"]["phi1"]
+l1_gv_per_mod = gv_per_mv * v21 / rf["L1"]["nmodules"]
+
+v31 = rf["L2"]["v1"]
+fi31 = rf["L2"]["phi1"]
+l2_gv_per_mod = gv_per_mv * v31 / rf["L2"]["nmodules"]
+
+l3_nmodules = rf["L3"]["nmodules"]
+l3_phi = 0.0
+l3_gv_per_mod = gv_per_mv * (E40 - 2400) / l3_nmodules
 
 # configuration of physical processes defined in s2e_sections/sections.py
 config = {
-    A1: {"phi": fi11 / grad, "v": V11 / 8 * 1e-3, "SC": SC_exec, "smooth": True, "wake": wake_exec},
-    AH1: {"phi": fi13 / grad, "v": V13 / 8 * 1e-3, "match": False, "SC": SC_exec, "wake": wake_exec},
+    A1: {"phi": fi11, "v": a1_gv_per_mod, "SC": SC_exec, "smooth": True, "wake": wake_exec},
+    AH1: {"phi": fi13, "v": ah1_gv_per_mod, "match": False, "SC": SC_exec, "wake": wake_exec},
     LH: {"match": True, "SC": SC_exec, "CSR": False, "wake": wake_exec},
     DL: {"match": match_exec, "SC": SC_exec, "CSR": CSR_exec, "wake": wake_exec},
     BC0: {"rho": r1, "match": match_exec, "SC": SC_exec, "CSR": CSR_exec, "wake": wake_exec},
     L1: {
         "match": match_exec,
-        "phi": fi21 / grad,
-        "v": V21 / 32 * 1e-3,
+        "phi": fi21,
+        "v": l1_gv_per_mod,
         "SC": SC_exec,
         "wake": wake_exec,
         "smooth": smooth_exec,
@@ -124,14 +140,14 @@ config = {
     BC1: {"rho": r2, "match": match_exec, "SC": SC_exec, "CSR": CSR_exec, "wake": wake_exec},
     L2: {
         "match": match_exec,
-        "phi": fi31 / grad,
-        "v": V31 / 96 * 1e-3,
+        "phi": fi31,
+        "v": l2_gv_per_mod,
         "SC": SC_exec,
         "wake": wake_exec,
         "smooth": smooth_exec,
     },
     BC2: {"rho": r3, "match": match_exec, "SC": SC_exec, "CSR": CSR_exec, "wake": wake_exec},
-    L3: {"phi": fi41 / grad, "v": V41 / 640 * 1e-3, "match": match_exec, "SC": SC_exec, "wake": wake_exec},
+    L3: {"phi": l3_phi, "v": l3_gv_per_mod, "match": match_exec, "SC": SC_exec, "wake": wake_exec},
     CL1: {"match": match_exec, "SC": SC_exec, "CSR": CSR_exec, "wake": wake_exec},
     CL2: {"SC": SC_exec},
     CL3: {"SC": SC_exec, "CSR": CSR_exec, "wake": wake_exec},

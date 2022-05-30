@@ -1256,6 +1256,122 @@ class T5(SectionTrack):
         self.lattice = MagneticLattice(t5.cell, start=t5.stsec_2743_t5, stop=t5.stsec_3039_t5d, method=self.method)
 
 
+class T20(SectionTrack):
+    # self.TWISS_PATH = ""
+
+    def __init__(self, data_dir):
+        super().__init__(data_dir)
+
+        # setting parameters
+        self.lattice_name = 'T20'
+        self.unit_step = 0.2
+
+        self.input_beam_file = self.particle_dir + 'section_CL3LUXE.npz'
+        self.output_beam_file = self.particle_dir + 'section_T20LUXE.npz'
+        self.tws_file = self.tws_dir + "tws_section_T20LUXE.npz"
+
+        # global NINA_TWISS
+        self.twiss = NINA_TWISS
+        self.twiss = self.twiss.iloc[START_T20_INDEX:None]
+
+        sequence, twiss0 = mad8.twiss_to_sequence_with_optics(self.twiss)
+
+        self.twiss0 = twiss0
+
+        # Have to explicitly set the start and stop even though they are by
+        # definition in this case simply the first and last elements of the
+        # lattice..
+        sequence = list(sequence)
+        # start = sequence[0]
+
+        # NINA_TWISS = NINA_TWISS.iloc[START_T20_INDEX:STOP_T20_INDEX+1]
+
+        # last_x_bend = names.index("BD.3.T20_62_marker")
+        section_start = sequence[0]
+        section_stop = sequence[-1]
+
+        sequence_without_dipole_markers = sequence
+        sequence_with_dipole_markers = []
+        dipole_markers_with_bending_radii = []
+
+        # Attaching physics processes to markers...
+        # IP marker.
+        # from IPython import embed; embed()
+        for element in sequence_without_dipole_markers:
+            # if isinstance(element, (Hcor, Vcor)):
+            #     print(f"{element}: {element.angle=}, {element.l=}")
+
+            # if element.id == "CFY.TL":
+            #     import ipdb; ipdb.set_trace()
+
+            if isinstance(element, (RBend, SBend, Hcor, Vcor)):
+                angle = element.angle
+
+                if not angle:
+                    # Don't bother attaching markers here!
+                    sequence_with_dipole_markers.append(element)
+                    continue
+                length = element.l
+
+                bending_radius = abs(length / angle)
+
+                vertical = element.tilt != 0
+
+                name = element.id
+                before = Marker(f"{name}-before")
+                after = Marker(f"{name}-after")
+
+                sequence_with_dipole_markers.extend([before, element, after])
+                dipole_markers_with_bending_radii.append((before, after, bending_radius, vertical))
+
+            else:
+                sequence_with_dipole_markers.append(element)
+
+        # from IPython import embed; embed()
+        sequence = sequence_with_dipole_markers
+
+        self.lattice = MagneticLattice(sequence, start=section_start, stop=section_stop, method=self.method)
+
+        # init physics processes
+        sc = SpaceCharge()
+        sc.step = 10
+        sc.nmesh_xyz = [31, 31, 31]
+        sc.low_order_kick = False
+
+        csr = CSR()
+        csr.traj_step = 0.0005
+        csr.apply_step = 0.005
+        csr.n_bin = 300
+        csr.sigma_min = T20LUXE_SIGZ * 0.1
+        csr.rk_traj = True
+        csr.energy = 14.0
+
+        # wake_add = Wake()
+        # wake_add.wake_table = WakeTable(WAKEDIR / 'mod_wake_1629.700_1831.200_MONO.dat')
+        # wake_add.factor = 1
+
+        luxe_ip_name = "IP.LUXE.T20"
+        ip_marker = next(s for s in sequence if s.id == luxe_ip_name)
+        self.ip_dump = CopyBeam(luxe_ip_name)
+
+        self.add_physics_process(self.ip_dump, start=ip_marker, stop=ip_marker)
+
+        # Do the Derbenev stuff.  Add the physics processes for this purpose.
+        # self.db_everywhere = DerbanevScorer()
+        # magnet_dbs = []
+        # for start, end, bending_radius, vertical in dipole_markers_with_bending_radii:
+        #     this_db = DerbanevScorer(bending_radius=bending_radius, vertical=vertical)
+        #     magnet_dbs.append(this_db)
+        #     self.add_physics_process(this_db, start=start, stop=end)
+        # self.magnet_dbs = magnet_dbs
+        # self.add_physics_process(self.db_everywhere,
+        #                          start=section_start,
+        #                          stop=section_stop)
+
+        self.add_physics_process(csr, start=section_start, stop=section_stop)
+        self.add_physics_process(sc, start=section_start, stop=section_stop)
+
+
 class T20LUXE(SectionTrack):
     def __init__(self, data_dir):
         super().__init__(data_dir)
@@ -1276,7 +1392,6 @@ class T20LUXE(SectionTrack):
 
         self.twiss0 = twiss0
 
-        # import ipdb; ipdb.set_trace()
         # Have to explicitly set the start and stop even though they are by
         # definition in this case simply the first and last elements of the
         # lattice..
@@ -1284,8 +1399,7 @@ class T20LUXE(SectionTrack):
         # start = sequence[0]
 
         # NINA_TWISS = NINA_TWISS.iloc[START_T20_INDEX:STOP_T20_INDEX+1]
-        # from IPython import embed; embed()
-        # from IPython import embed; embed()
+
         # last_x_bend = names.index("BD.3.T20_62_marker")
         section_start = sequence[0]
         section_stop = sequence[-1]
